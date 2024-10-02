@@ -7,8 +7,6 @@ import base64
 import time
 import json
 import markdown
-import wolframalpha
-import lyricsgenius
 from io import BytesIO
 from PIL import Image
 from flask import Flask, render_template, send_file
@@ -34,13 +32,10 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 socketio = SocketIO(app)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-WOLF = os.getenv("WOLF")
-GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
 model_name = "llama-3.2-90b-text-preview"
 
 groq_chat = ChatGroq(groq_api_key=GROQ_API_KEY, model_name=model_name)
 groq_client = Groq(api_key=GROQ_API_KEY)
-genius = lyricsgenius.Genius(GENIUS_TOKEN)
 
 chat_history = ChatMessageHistory()
 conversation_memory = ConversationBufferWindowMemory(
@@ -51,10 +46,9 @@ system_prompt = """
 You are a helpful AI assistant designed to chat with users and provide information on various topics.
 You use Markdown formatting to structure your responses, including headers, lists, and code blocks when appropriate.
 You aim to be friendly, informative, and engaging in your conversations.
-You can perform various functions like generating images, fetching cat and dog pictures, playing music from YouTube, fetching lyrics, and more.
+You can perform various functions like generating images, fetching cat and dog pictures, playing music from YouTube, and more.
 You can also analyze uploaded images and answer questions about them.
 You can play games like guessing numbers, rolling dice, and flipping coins.
-You can perform calculations using WolframAlpha and provide detailed responses.
 You remember to have fun and use emojis but don't overdo it.
 
 I am provided with function signatures within <tools></tools> XML tags. I may call one or more functions to assist with the user query.
@@ -75,21 +69,8 @@ flip: Coin flip.
 ask: Yes/no response.
 chat [message]: Chat with the bot.
 imagine [prompt]: Generate an image based on a prompt.
-calculate [query]: Calculate using WolframAlpha. I can check anything such as weather, math, time, and date.
-lyrics [song_name]: Fetch lyrics for a song.
 play [query]: Play music from YouTube.
 stop: Stop music playback.
-
-Here are some specific capabilities of the WolframAlpha function:
-
-Mathematical Calculations: Solve equations, perform calculus, or find integrals and derivatives. Just ask me to calculate something like "What is the integral of x^2?"
-Unit Conversions: Convert between units, like kilometers to miles or Celsius to Fahrenheit. Just provide the values and units!
-Statistics and Data Analysis: Analyze statistical data, compute averages, medians, and standard deviations, or generate graphs.
-General Knowledge Queries: Ask me factual questions like "What are the population statistics for Brazil?"
-Weather Information: Get current weather conditions or forecasts for any location by asking for the weather in a specific city.
-Time and Date Calculations: Check the current time in different time zones or calculate the difference between two dates.
-Historical Facts: Find out significant events that happened on a particular date in history.
-Chemical Information: Query about chemical properties or compounds, such as "What is the molecular weight of water?"
 
 IMPORTANT:
 DO NOT RUN ANY COMMANDS OUTSIDE OF THE TOOL CALLS.
@@ -208,16 +189,12 @@ def handle_command(command, message):
         "cat": get_cat_image,
         "dog": get_dog_image,
         "imagine": lambda: generate_image(message.split(maxsplit=1)[1]),
-        "calculate": lambda: calculate(message.split(maxsplit=1)[1]),
         "gtn": guess_the_number,
         "dice": lambda: roll_dice(
             int(message.split()[1]) if len(message.split()) > 1 else 6
         ),
         "flip": flip_coin,
         "ask": lambda: ask_question(message.split(maxsplit=1)[1]),
-        "lyrics": lambda: get_lyrics(
-            message.split(maxsplit=1)[1] if len(message.split()) > 1 else None
-        ),
         "play": lambda: play_music(message.split(maxsplit=1)[1]),
         "stop": stop_music,
     }
@@ -295,22 +272,6 @@ def generate_image(prompt):
         emit("receive_message", {"message": error_message, "is_user": False})
 
 
-def calculate(query):
-    client = wolframalpha.Client(WOLF)
-    try:
-        res = client.query(query)
-        result = next(res.results).text
-        message = f"Result: {result}"
-        chat_history.add_user_message(f"[Calculation] {query}")
-        chat_history.add_ai_message(message)
-        emit("receive_message", {"message": message, "is_user": False})
-    except Exception as e:
-        error_message = f"An error occurred: {str(e)}"
-        chat_history.add_user_message(f"[Calculation Error] {query}")
-        chat_history.add_ai_message(error_message)
-        emit("receive_message", {"message": error_message, "is_user": False})
-
-
 def guess_the_number():
     secret_number = random.randint(1, 10)
     message = "I'm thinking of a number between 1 and 10. Can you guess it?"
@@ -356,33 +317,6 @@ def ask_question(question):
     emit("receive_message", {"message": message, "is_user": False})
 
 
-def get_lyrics(song_name):
-    if not song_name:
-        emit(
-            "receive_message",
-            {"message": "Please provide a song name.", "is_user": False},
-        )
-        return
-
-    try:
-        song = genius.search_song(song_name)
-        if song:
-            lyrics = song.lyrics
-            chat_history.add_user_message(f"[Lyrics Request] {song_name}")
-            chat_history.add_ai_message(lyrics)
-            emit("receive_message", {"message": lyrics, "is_user": False})
-        else:
-            error_message = "Lyrics not found."
-            chat_history.add_user_message(f"[Lyrics Request] {song_name}")
-            chat_history.add_ai_message(error_message)
-            emit("receive_message", {"message": error_message, "is_user": False})
-    except Exception as e:
-        error_message = f"An error occurred while fetching the lyrics: {str(e)}"
-        chat_history.add_user_message(f"[Lyrics Request] {song_name}")
-        chat_history.add_ai_message(error_message)
-        emit("receive_message", {"message": error_message, "is_user": False})
-
-
 def play_music(query):
     # Placeholder for music playback functionality
     message = f"Playing music: {query}"
@@ -418,8 +352,6 @@ def handle_tool_call(response):
             "dice": lambda: roll_dice(tool_arguments.get("sides", 6)),
             "flip": flip_coin,
             "ask": lambda: ask_question(tool_arguments.get("question")),
-            "calculate": lambda: calculate(tool_arguments.get("query")),
-            "lyrics": lambda: get_lyrics(tool_arguments.get("song_name")),
             "play": lambda: play_music(tool_arguments.get("query")),
             "stop": stop_music,
         }
