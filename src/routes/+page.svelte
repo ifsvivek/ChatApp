@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { marked } from 'marked';
 	import { ChatMessages, ImageUpload, MessageInput, ThemeToggle } from '$components';
-
 	let messages = [];
 	let uploadedImageFilename = null;
 	let isTyping = false;
@@ -76,6 +75,34 @@
 		}
 	}
 
+	async function analyzeImage(question) {
+		if (!uploadedImageFilename) {
+			addMessage('Please upload an image first before asking for analysis.', false);
+			return;
+		}
+
+		const formData = new FormData();
+		formData.append('filename', uploadedImageFilename);
+		formData.append('question', question);
+
+		try {
+			const response = await fetch('?/analyzeImage', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+			if (result.success) {
+				addMessage(result.message, false);
+			} else {
+				addMessage('Sorry, there was an error analyzing the image.', false);
+			}
+		} catch (error) {
+			console.error('Error analyzing image:', error);
+			addMessage('Sorry, there was an error analyzing the image.', false);
+		}
+	}
+
 	onMount(() => {
 		const savedTheme = localStorage.getItem('theme');
 		if (
@@ -95,31 +122,39 @@
 			<h1 class="text-3xl font-bold text-primary-600 dark:text-primary-400">AI Chat Assistant</h1>
 			<ThemeToggle />
 		</header>
-		<div
-			bind:this={chatContainer}
-			class="flex-grow overflow-y-auto mb-4 rounded-lg bg-white dark:bg-gray-800 shadow-md"
-		>
-			<ChatMessages {messages} />
-			{#if isTyping}
-				<div class="flex items-center gap-2 p-4 text-gray-600 dark:text-gray-400">
-					<span>AI is typing</span>
-					<div class="flex space-x-1">
-						<div class="w-2 h-2 bg-gray-600 dark:bg-gray-400 rounded-full animate-bounce"></div>
-						<div
-							class="w-2 h-2 bg-gray-600 dark:bg-gray-400 rounded-full animate-bounce"
-							style="animation-delay: 0.2s"
-						></div>
-						<div
-							class="w-2 h-2 bg-gray-600 dark:bg-gray-400 rounded-full animate-bounce"
-							style="animation-delay: 0.4s"
-						></div>
+		<div class="flex flex-col flex-grow">
+			<div
+				bind:this={chatContainer}
+				class="chat-container mb-4 rounded-lg bg-white dark:bg-gray-800 shadow-md flex-grow overflow-y-auto"
+			>
+				<ChatMessages {messages} />
+				{#if isTyping}
+					<div class="flex items-center gap-2 p-4 text-gray-600 dark:text-gray-400">
+						<span>AI is typing</span>
+						<div class="flex space-x-1">
+							<div class="w-2 h-2 bg-gray-600 dark:bg-gray-400 rounded-full animate-bounce"></div>
+							<div
+								class="w-2 h-2 bg-gray-600 dark:bg-gray-400 rounded-full animate-bounce"
+								style="animation-delay: 0.2s"
+							></div>
+							<div
+								class="w-2 h-2 bg-gray-600 dark:bg-gray-400 rounded-full animate-bounce"
+								style="animation-delay: 0.4s"
+							></div>
+						</div>
 					</div>
-				</div>
-			{/if}
-		</div>
-		<div class="flex gap-4 items-end">
-			<MessageInput on:sendMessage={(e) => sendMessage(e.detail)} />
-			<ImageUpload on:imageSelected={(e) => handleImageUpload(e.detail)} />
+				{/if}
+			</div>
+			<div class="flex gap-4 items-end">
+				<MessageInput on:sendMessage={(e) => sendMessage(e.detail)} />
+				<ImageUpload on:imageSelected={(e) => handleImageUpload(e.detail)} />
+			</div>
 		</div>
 	</div>
 </div>
+
+<style>
+	.chat-container {
+		max-height: calc(100vh - 200px);
+	}
+</style>

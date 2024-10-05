@@ -30,6 +30,7 @@
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
+				transform="rotate(90)"
 			>
 				<path
 					stroke-linecap="round"
