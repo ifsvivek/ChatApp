@@ -10,7 +10,7 @@ import path from 'path';
 
 const model = new ChatGroq({
 	apiKey: GROQ_API_KEY,
-	model: 'llama-3.2-90b-text-preview',
+	model: 'llama-3.2-90b-vision-preview',
 	temperature: 0.7,
 	maxTokens: 1000,
 	topP: 1
