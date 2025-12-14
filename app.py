@@ -7,10 +7,6 @@ import base64
 import time
 import json
 import markdown
-import wolframalpha
-import lyricsgenius
-from io import BytesIO
-from PIL import Image
 from flask import Flask, render_template, send_file
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
@@ -49,13 +45,10 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 socketio = SocketIO(app)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-WOLF = os.getenv("WOLF")
-GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
 model_name = "llama-3.3-70b-versatile"
 
 groq_chat = ChatGroq(groq_api_key=GROQ_API_KEY, model_name=model_name)
 groq_client = Groq(api_key=GROQ_API_KEY)
-genius = lyricsgenius.Genius(GENIUS_TOKEN)
 
 chat_history = ChatMessageHistory()
 conversation_memory = ConversationBufferWindowMemory(
@@ -66,10 +59,9 @@ system_prompt = """
 You are a helpful AI assistant designed to chat with users and provide information on various topics.
 You use Markdown formatting to structure your responses, including headers, lists, and code blocks when appropriate.
 You aim to be friendly, informative, and engaging in your conversations.
-You can perform various functions like generating images, fetching cat and dog pictures, playing music from YouTube, fetching lyrics, and more.
+You can perform various functions like fetching cat pictures, playing music from YouTube, and more.
 You can also analyze uploaded images and answer questions about them.
 You can play games like guessing numbers, rolling dice, and flipping coins.
-You can perform calculations using WolframAlpha and provide detailed responses.
 You remember to have fun and use emojis but don't overdo it.
 
 I am provided with function signatures within <tools></tools> XML tags. I may call one or more functions to assist with the user query.
@@ -82,16 +74,12 @@ For each function call, I return a json object with function name and arguments 
 I use tool calls to run only these commands and do not run any other commands.
 
 cat: Random cat image.
-dog: Random dog image.
 gtn: Number guessing game.
 hello: Greet the user.
 dice [sides]: Roll a dice (default 6 sides).
 flip: Coin flip.
 ask: Yes/no response.
 chat [message]: Chat with the bot.
-imagine [prompt]: Generate an image based on a prompt.
-calculate [query]: Calculate using WolframAlpha. I can check anything such as weather, math, time, and date.
-lyrics [song_name]: Fetch lyrics for a song.
 play [query]: Play music from YouTube.
 stop: Stop music playback.
 
@@ -221,18 +209,12 @@ def analyze_image(data):
 def handle_command(command, message):
     commands = {
         "cat": get_cat_image,
-        "dog": get_dog_image,
-        "imagine": lambda: generate_image(message.split(maxsplit=1)[1]),
-        "calculate": lambda: calculate(message.split(maxsplit=1)[1]),
         "gtn": guess_the_number,
         "dice": lambda: roll_dice(
             int(message.split()[1]) if len(message.split()) > 1 else 6
         ),
         "flip": flip_coin,
         "ask": lambda: ask_question(message.split(maxsplit=1)[1]),
-        "lyrics": lambda: get_lyrics(
-            message.split(maxsplit=1)[1] if len(message.split()) > 1 else None
-        ),
         "play": lambda: play_music(message.split(maxsplit=1)[1]),
         "stop": stop_music,
     }
@@ -255,73 +237,6 @@ def get_cat_image():
     else:
         error_message = "Failed to fetch cat image."
         chat_history.add_user_message("[Cat Image Request]")
-        chat_history.add_ai_message(error_message)
-        emit("receive_message", {"message": error_message, "is_user": False})
-
-
-def get_dog_image():
-    response = requests.get("https://api.thedogapi.com/v1/images/search")
-    if response.status_code == 200:
-        data = response.json()
-        image_url = data[0]["url"]
-        message = "Here's an adorable dog picture:"
-        chat_history.add_user_message("[Dog Image Request]")
-        chat_history.add_ai_message(message)
-        emit("receive_message", {"message": message, "is_user": False})
-        emit("receive_image", {"url": image_url})
-    else:
-        error_message = "Failed to fetch dog image."
-        chat_history.add_user_message("[Dog Image Request]")
-        chat_history.add_ai_message(error_message)
-        emit("receive_message", {"message": error_message, "is_user": False})
-
-
-def generate_image(prompt):
-    output_dir = "img"
-    os.makedirs(output_dir, exist_ok=True)
-
-    url = "https://diffusion.ayushmanmuduli.com/gen"
-    params = {
-        "prompt": prompt,
-        "model_id": 5,
-        "use_refiner": 0,
-        "magic_prompt": 0,
-        "calc_metrics": 0,
-    }
-
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        base64_image_string = data["image"]
-        image_data = base64.b64decode(base64_image_string)
-        image = Image.open(BytesIO(image_data))
-        timestamp = int(time.time())
-        image_path = os.path.join(output_dir, f"img_{timestamp}.png")
-        image.save(image_path)
-        message = f'Generated image based on prompt: "{prompt}"'
-        chat_history.add_user_message(f"[Image Generation] {prompt}")
-        chat_history.add_ai_message(message)
-        emit("receive_message", {"message": message, "is_user": False})
-        emit("receive_image", {"url": f"/img/{os.path.basename(image_path)}"})
-    else:
-        error_message = "Failed to generate image."
-        chat_history.add_user_message(f"[Image Generation] {prompt}")
-        chat_history.add_ai_message(error_message)
-        emit("receive_message", {"message": error_message, "is_user": False})
-
-
-def calculate(query):
-    client = wolframalpha.Client(WOLF)
-    try:
-        res = client.query(query)
-        result = next(res.results).text
-        message = f"Result: {result}"
-        chat_history.add_user_message(f"[Calculation] {query}")
-        chat_history.add_ai_message(message)
-        emit("receive_message", {"message": message, "is_user": False})
-    except Exception as e:
-        error_message = f"An error occurred: {str(e)}"
-        chat_history.add_user_message(f"[Calculation Error] {query}")
         chat_history.add_ai_message(error_message)
         emit("receive_message", {"message": error_message, "is_user": False})
 
@@ -371,33 +286,6 @@ def ask_question(question):
     emit("receive_message", {"message": message, "is_user": False})
 
 
-def get_lyrics(song_name):
-    if not song_name:
-        emit(
-            "receive_message",
-            {"message": "Please provide a song name.", "is_user": False},
-        )
-        return
-
-    try:
-        song = genius.search_song(song_name)
-        if song:
-            lyrics = song.lyrics
-            chat_history.add_user_message(f"[Lyrics Request] {song_name}")
-            chat_history.add_ai_message(lyrics)
-            emit("receive_message", {"message": lyrics, "is_user": False})
-        else:
-            error_message = "Lyrics not found."
-            chat_history.add_user_message(f"[Lyrics Request] {song_name}")
-            chat_history.add_ai_message(error_message)
-            emit("receive_message", {"message": error_message, "is_user": False})
-    except Exception as e:
-        error_message = f"An error occurred while fetching the lyrics: {str(e)}"
-        chat_history.add_user_message(f"[Lyrics Request] {song_name}")
-        chat_history.add_ai_message(error_message)
-        emit("receive_message", {"message": error_message, "is_user": False})
-
-
 def play_music(query):
     # Placeholder for music playback functionality
     message = f"Playing music: {query}"
@@ -426,15 +314,11 @@ def handle_tool_call(response):
         result = None
 
         tool_actions = {
-            "imagine": lambda: generate_image(tool_arguments.get("prompt")),
             "cat": get_cat_image,
-            "dog": get_dog_image,
             "gtn": guess_the_number,
             "dice": lambda: roll_dice(tool_arguments.get("sides", 6)),
             "flip": flip_coin,
             "ask": lambda: ask_question(tool_arguments.get("question")),
-            "calculate": lambda: calculate(tool_arguments.get("query")),
-            "lyrics": lambda: get_lyrics(tool_arguments.get("song_name")),
             "play": lambda: play_music(tool_arguments.get("query")),
             "stop": stop_music,
         }
@@ -444,11 +328,6 @@ def handle_tool_call(response):
         return result
     except Exception as e:
         return f"An error occurred while processing the tool call: {e}"
-
-
-@app.route("/img/<path:filename>")
-def serve_image(filename):
-    return send_file(os.path.join("img", filename))
 
 
 @app.route("/uploads/<path:filename>")
