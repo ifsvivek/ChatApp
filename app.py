@@ -14,15 +14,30 @@ from PIL import Image
 from flask import Flask, render_template, send_file
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
-from langchain.chains import LLMChain
+try:
+    from langchain.chains import LLMChain
+except ImportError:
+    from langchain_classic.chains import LLMChain
+
 from langchain_core.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     MessagesPlaceholder,
 )
 from langchain_core.messages import SystemMessage
-from langchain.memory import ChatMessageHistory
-from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+try:
+    from langchain.memory import ChatMessageHistory
+except ImportError:
+    try:
+        from langchain_community.chat_message_histories import ChatMessageHistory
+    except ImportError:
+        from langchain_core.chat_history import InMemoryChatMessageHistory as ChatMessageHistory
+
+try:
+    from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+except ImportError:
+    from langchain_classic.memory import ConversationBufferWindowMemory
+
 from langchain_groq import ChatGroq
 from groq import Groq
 
@@ -36,7 +51,7 @@ socketio = SocketIO(app)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 WOLF = os.getenv("WOLF")
 GENIUS_TOKEN = os.getenv("GENIUS_TOKEN")
-model_name = "llama-3.2-90b-text-preview"
+model_name = "llama-3.3-70b-versatile"
 
 groq_chat = ChatGroq(groq_api_key=GROQ_API_KEY, model_name=model_name)
 groq_client = Groq(api_key=GROQ_API_KEY)
