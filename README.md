@@ -15,8 +15,8 @@ This project is a Flask-based web application that provides various interactive 
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/yourusername/yourproject.git
-    cd yourproject
+    git clone https://github.com/ifsvivek/ChatApp
+    cd ChatApp
     ```
 
 2. **Create a virtual environment:**
