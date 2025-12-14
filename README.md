@@ -1,6 +1,6 @@
 # AI Chat Assistant 🤖
 
-A powerful Flask-based web application featuring an AI chat assistant powered by Groq's LLaMA 3.3 70B model. The application provides a rich, interactive chat experience with multiple capabilities including image analysis, lyrics fetching, calculations, games, and more.
+A powerful Flask-based web application featuring an AI chat assistant powered by Groq's LLaMA 3.3 70B model. The application provides a rich, interactive chat experience with multiple capabilities including image analysis, games, and more.
 
 ## ✨ Features
 
@@ -12,12 +12,10 @@ A powerful Flask-based web application featuring an AI chat assistant powered by
 
 ### 🖼️ Image Capabilities
 - **Image Upload & Analysis**: Upload images and ask questions about them using LLaMA Vision model
-- **Image Generation**: Create images from text prompts using AI image generation
 
 ### 🎵 Entertainment
-- **Lyrics Search**: Get song lyrics instantly using the Genius API
 - **Music Playback**: Play music from YouTube (via commands)
-- **Random Images**: Fetch random cat or dog pictures on demand
+- **Random Images**: Fetch random cat pictures on demand
 
 ### 🎮 Games & Fun
 - **Guess the Number**: Number guessing game (1-10)
@@ -26,7 +24,6 @@ A powerful Flask-based web application featuring an AI chat assistant powered by
 - **Magic 8-Ball**: Get yes/no/maybe answers to questions
 
 ### 🧮 Utilities
-- **WolframAlpha Integration**: Perform complex calculations, unit conversions, weather queries, and more
 - Real-time chat with Socket.IO
 - Responsive design that works on all devices
 
@@ -42,8 +39,6 @@ A powerful Flask-based web application featuring an AI chat assistant powered by
 - requests 2.32.5
 - Pillow 12.0.0
 - markdown 3.10
-- wolframalpha 5.1.3
-- lyricsgenius 3.7.5
 - langchain 1.1.3
 - langchain-core 1.2.0
 - langchain-groq 1.1.1
@@ -78,19 +73,15 @@ A powerful Flask-based web application featuring an AI chat assistant powered by
 
 ## ⚙️ Configuration
 
-Create a `.env` file in the root directory with the following API keys:
+Create a `.env` file in the root directory with the following API key:
 
 ```env
-GENIUS_TOKEN=<your_genius_api_token>
 GROQ_API_KEY=<your_groq_api_key>
-WOLF=<your_wolfram_alpha_app_id>
 ```
 
 ### How to get API keys:
 
 - **GROQ_API_KEY**: Get your free API key from [Groq Console](https://console.groq.com/)
-- **GENIUS_TOKEN**: Register at [Genius API Clients](https://genius.com/api-clients)
-- **WOLF**: Sign up at [WolframAlpha Developer Portal](https://developer.wolframalpha.com/portal/myapps/)
 
 ## 🎯 Usage
 
@@ -113,27 +104,12 @@ Commands can be used by prefixing them with `/` in the chat:
 | Command | Description | Example |
 |---------|-------------|---------|
 | `/cat` | Get a random cat image | `/cat` |
-| `/dog` | Get a random dog image | `/dog` |
-| `/imagine [prompt]` | Generate an image from text | `/imagine sunset over mountains` |
-| `/calculate [query]` | Perform calculations or queries | `/calculate 2+2` or `/calculate weather in London` |
-| `/lyrics [song_name]` | Fetch song lyrics | `/lyrics Bohemian Rhapsody` |
 | `/gtn` | Start a guess-the-number game | `/gtn` |
 | `/dice [sides]` | Roll a dice (default 6 sides) | `/dice 20` |
 | `/flip` | Flip a coin | `/flip` |
 | `/ask [question]` | Get a yes/no/maybe answer | `/ask Will it rain today?` |
 | `/play [query]` | Play music from YouTube | `/play Never Gonna Give You Up` |
 | `/stop` | Stop music playback | `/stop` |
-
-### WolframAlpha Capabilities
-
-The `/calculate` command can handle:
-- **Math**: Solve equations, calculus, integrals, derivatives
-- **Unit Conversions**: Convert between any units
-- **Statistics**: Analyze data, compute averages, medians
-- **General Knowledge**: Population statistics, historical facts
-- **Weather**: Current weather and forecasts
-- **Time & Date**: Time zones, date calculations
-- **Chemistry**: Molecular weights, chemical properties
 
 ## 🏗️ Project Structure
 
@@ -146,8 +122,7 @@ ChatApp/
 ├── README.md             # This file
 ├── templates/
 │   └── index.html        # Main chat interface
-├── uploads/              # Uploaded images storage
-└── img/                  # Generated images storage
+└── uploads/              # Uploaded images storage
 ```
 
 ## 🤝 Contributing
@@ -174,8 +149,6 @@ This project is licensed under the MIT License. See the LICENSE file for details
 ## 🙏 Acknowledgments
 
 - [Groq](https://groq.com/) for the powerful LLaMA models
-- [Genius](https://genius.com/) for lyrics data
-- [WolframAlpha](https://www.wolframalpha.com/) for computational intelligence
 - [Flask](https://flask.palletsprojects.com/) and [Socket.IO](https://socket.io/) for the web framework
 - [LangChain](https://www.langchain.com/) for LLM orchestration
 
@@ -189,7 +162,6 @@ This project is licensed under the MIT License. See the LICENSE file for details
 - [ ] Add user authentication
 - [ ] Implement persistent chat history
 - [ ] Add more AI models support
-- [ ] Enhance image generation with more options
 - [ ] Add voice input/output capabilities
 - [ ] Implement chat export functionality
 
